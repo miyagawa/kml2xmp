@@ -4,7 +4,7 @@ Attach location history recorded in kml to RAW photos as .xmp sidecar files
 
 ## Usage
 
-    kml2gmp -i location-history.kml ~/Photos
+    kml2gmp location-history.kml ~/Photos
 
 ## How it works
 
