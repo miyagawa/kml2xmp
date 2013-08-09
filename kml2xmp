@@ -1,0 +1,180 @@
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
+require 'nokogiri'
+require 'time'
+
+class CLI
+  attr_reader :kml, :photos, :points
+
+  def initialize(args)
+    @kml = args.shift
+    @photos = EnumerateFiles.new(args)
+    @points = TrackPoints.new
+  end
+
+  def run
+    load_history
+    geotag_photos
+  end
+
+  def load_history
+    _when = nil
+    doc = Nokogiri::XML(File.open(kml))
+    doc.xpath('//kml:Placemark/gx:Track/*').each do |node|
+      case node.name
+      when "when"
+        _when = Time.parse(node.text)
+      when "coord"
+        points << TrackPoint.new(_when, Location.new(node.text))
+      end
+    end
+  end
+
+  def handles?(photo)
+    photo.raw? && !photo.has_sidecar?
+  end
+
+  def geotag_photos
+    photos.each do |photo|
+      next unless handles?(photo)
+      point = points.point_in(photo.taken_time)
+      if point
+        puts "Geotagging #{photo.file} as #{point.location} at #{point.time}"
+        photo.geotag(point.location)
+      else
+        puts "Couldn't find location for #{photo.file} at #{photo.taken_time}"
+      end
+    end
+  end
+end
+
+class EnumerateFiles
+  def initialize(files)
+    @files = files
+  end
+
+  def each
+    @files.each do |file|
+      if File.directory?(file)
+        Dir.glob("#{file}/**/*").each do |f|
+          yield Photo.new(f)
+        end
+      else
+        yield Photo.new(file)
+      end
+    end
+  end
+end
+
+class Photo
+  attr_reader :file
+
+  def initialize(file)
+    @file = file
+  end
+
+  def raw?
+    /\.RW2$/ === @file
+  end
+
+  def sidecar_file
+    @sidecar ||= @file.sub /\.RW2$/, '.xmp'
+  end
+
+  def has_sidecar?
+    File.exists?(sidecar_file)
+  end
+
+  def taken_time
+    # assume local timezone
+    @time ||= begin
+      match = /creation: (\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/
+        .match(`sips -g creation #{@file}`)
+      Time.new(*match[1..6]) if match
+    end
+  end
+
+  def geotag(location)
+    xmp = <<EOF
+<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="XMP Core 4.4.0">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+           xmlns:exif="http://ns.adobe.com/exif/1.0/">
+       <exif:GPSLatitude>#{location.gpslat}</exif:GPSLatitude>
+       <exif:GPSLongitude>#{location.gpslon}</exif:GPSLongitude>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="r"?>
+EOF
+
+    File.open(sidecar_file, 'w') { |f| f.write(xmp) }
+  end
+end
+
+class TrackPoints
+  def initialize
+    @points = []
+  end
+
+  def <<(point)
+    @points << point
+  end
+
+  def time_range
+    @points.first.time.to_f .. @points.last.time.to_f
+  end
+
+  def point_in(time)
+    return unless time_range.cover?(time.to_f)
+
+    found = nil
+    @points.each do |point|
+      if time >= point.time
+        found = point
+      end
+    end
+
+    found
+  end
+end
+
+class TrackPoint
+  attr_reader :time, :location
+
+  def initialize(*args)
+    @time, @location = *args
+  end
+end
+
+class Location
+  def initialize(text)
+    # <gx:coord>-123.1391367 49.2813121 0</gx:coord>
+    @text = text
+    @lon, @lat, @alt = text.split(' ').map(&:to_f)
+  end
+
+  def to_s
+    @text
+  end
+
+  def gpslat
+    gps_format @lat, ['N','S']
+  end
+
+  def gpslon
+    gps_format @lon, ['E','W']
+  end
+
+  def gps_format(value, flags)
+    positive = value > 0
+    degrees = value.abs.floor
+    minutes = 60 * (value.abs - degrees)
+    sprintf "%d,%.6f%s", degrees, minutes, flags[positive ? 0 : 1]
+  end
+end
+
+CLI.new(ARGV).run
+
