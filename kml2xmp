@@ -160,18 +160,18 @@ class Location
   end
 
   def gpslat
-    gps_format @lat, ['N','S']
+    gps_format @lat, 'N', 'S'
   end
 
   def gpslon
-    gps_format @lon, ['E','W']
+    gps_format @lon, 'E', 'W'
   end
 
-  def gps_format(value, flags)
-    positive = value > 0
+  def gps_format(value, pos, neg)
+    flag = value > 0 ? pos : neg
     degrees = value.abs.floor
     minutes = 60 * (value.abs - degrees)
-    sprintf "%d,%.6f%s", degrees, minutes, flags[positive ? 0 : 1]
+    sprintf "%d,%.6f%s", degrees, minutes, flag
   end
 end
 
