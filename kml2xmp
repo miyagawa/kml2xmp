@@ -89,8 +89,7 @@ class Photo
   def taken_time
     # assume local timezone
     @time ||= begin
-      match = /creation: (\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/
-        .match(`sips -g creation #{@file}`)
+      match = /creation: (\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)$/.match(`sips -g creation #{@file}`)
       Time.new(*match[1..6]) if match
     end
   end
