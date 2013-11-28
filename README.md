@@ -14,7 +14,7 @@ kml2xmp uses `sips` command (comes with Mac OS X) to get the creation date of yo
 
 ## Why
 
-I geotag photos with [Eye-Fi](http://www.eye.fi) and [gps4cam](http://gps4cam.com/). Eye-Fi often doesn't recognize Wi-Fi locations, and gps4cam drains battery (or simple I also forgot to run it).
+I geotag photos with [Eye-Fi](http://www.eye.fi) and [gps4cam](http://gps4cam.com/). Eye-Fi often doesn't recognize Wi-Fi locations, and gps4cam drains battery (or simply I forget to run it).
 
 kml2xmp allows you to download your KML history from [Google Location History](https://maps.google.com/locationhistory/b/0) and geotag photos with .xmp sidecar. Google Location History is updated by your phone already, and is more available than Wi-Fi, if not accurate.
 
