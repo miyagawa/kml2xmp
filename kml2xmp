@@ -117,7 +117,7 @@ class Photo
   end
 
   def geotag(location)
-    system 'exiftool', '-overwrite_original', '-preserve', "-GPSLatitude*=#{location.lat}", "-GPSLongtitude*=#{location.lon}", "-GPSAltitude*=#{location.alt}", file
+    system 'exiftool', '-overwrite_original', '-preserve', "-GPSLatitude*=#{location.lat}", "-GPSLongitude*=#{location.lon}", "-GPSAltitude*=#{location.alt}", file
   end
 end
 
